@@ -1,4 +1,5 @@
 using Amazon.Lambda.Core;
+using System.Text.Json;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
@@ -9,13 +10,29 @@ public class Function
 {
     
     /// <summary>
-    /// A simple function that takes a string and does a ToUpper
+    /// Accepts either a JSON string ("hello") or an object payload ({"input":"hello"}) and returns uppercase.
     /// </summary>
-    /// <param name="input">The event for the Lambda function handler to process.</param>
-    /// <param name="context">The ILambdaContext that provides methods for logging and describing the Lambda environment.</param>
-    /// <returns></returns>
-    public string FunctionHandler(string input, ILambdaContext context)
+    public string FunctionHandler(JsonElement input, ILambdaContext context)
     {
-        return input.ToUpper();
+        string? value = null;
+
+        if (input.ValueKind == JsonValueKind.String)
+        {
+            value = input.GetString();
+        }
+        else if (input.ValueKind == JsonValueKind.Object &&
+                 input.TryGetProperty("input", out JsonElement inputValue) &&
+                 inputValue.ValueKind == JsonValueKind.String)
+        {
+            value = inputValue.GetString();
+        }
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            context.Logger.LogLine("Invalid payload. Expected JSON string or object with an 'input' field.");
+            throw new ArgumentException("Invalid payload. Use \"hello\" or {\"input\":\"hello\"}.");
+        }
+
+        return value.ToUpperInvariant();
     }
 }
