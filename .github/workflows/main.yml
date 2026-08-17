@@ -14,6 +14,8 @@ permissions:
 env:
   DOTNET_VERSION: '8.0.x'
   PROJECT_PATH: 'sesion5_github_lf_2026.csproj'
+  LAMBDA_HANDLER: 'sesion5_github_lf_2026::sesion5_github_lf_2026.Function::FunctionHandler'
+  LAMBDA_RUNTIME: 'dotnet8'
 
 jobs:
   build-package:
@@ -70,6 +72,13 @@ jobs:
 
       - name: Deploy Lambda
         run: |
+          aws lambda update-function-configuration \
+            --function-name "$LAMBDA_FUNCTION_NAME" \
+            --handler "${{ env.LAMBDA_HANDLER }}" \
+            --runtime "${{ env.LAMBDA_RUNTIME }}"
+          aws lambda wait function-updated \
+            --function-name "$LAMBDA_FUNCTION_NAME"
+
           aws lambda update-function-code \
             --function-name "$LAMBDA_FUNCTION_NAME" \
             --zip-file fileb://app.zip
